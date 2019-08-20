@@ -18,7 +18,7 @@ Additionally, this script uses [FFmpeg](https://ffmpeg.org/) to clip videos. On 
 
 This script is entirely command-line based. Launch using:
 
-`python3 clipper_clip_.py`
+`python3 clipper_clip.py`
 
 The user is first prompted with a message about using ranger. The file system can be navigated with arrow keys in order to find a video. Use the ```Enter``` key to select a video.
 
