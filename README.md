@@ -6,7 +6,7 @@ Helper script for (losslessly) clipping sections of video using ffmpeg.
 
 ## Requirements
 
-This script relies on a command line tool called [Ranger](https://github.com/ranger/ranger). On Ubuntu, this can be installed as follows:
+This script relies on a command line tool called [ranger](https://github.com/ranger/ranger). On Ubuntu, this can be installed as follows:
 
 `sudo apt install ranger`
 
@@ -18,7 +18,7 @@ Additionally, this script uses [FFmpeg](https://ffmpeg.org/) to clip videos. On 
 
 This script is entirely command-line based. Launch using:
 
-`python3 clipper_clip.py`
+`python3 clipper_cli.py`
 
 The user is first prompted with a message about using ranger. The file system can be navigated with arrow keys in order to find a video. Use the ```Enter``` key to select a video.
 
@@ -30,7 +30,7 @@ Following the file selection, the user will be prompted with a start and end tim
 
 **Note3:** The output file will be saved in the same location as the input file. This cannot be changed (as of yet).
 
-**Note4:** Clipping is lossless, meaning that the video is not re-encoded and occurs very quickly (no new information needs to be generated). However, this also means that the clipped video may not have the exact timestamps specified by the user, as the clipping must occur on keyframes of the original file.
+**Note4:** Clipping is lossless, meaning that the video is not re-encoded. However, this also means that the clipped video may not have the exact timestamps specified by the user, as the clipping must occur on keyframes of the original file.
 
 ## Timestamp Input Formats
 
