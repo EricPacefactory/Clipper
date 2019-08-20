@@ -10,7 +10,7 @@ This script relies on a command line tool called [Ranger](https://github.com/ran
 
 `sudo apt install ranger`
 
-Additionally, this script uses [FFmpeg]([https://ffmpeg.org/](https://ffmpeg.org/) to clip videos. On Ubuntu, this can be installed as follows:
+Additionally, this script uses [FFmpeg](https://ffmpeg.org/) to clip videos. On Ubuntu, this can be installed as follows:
 
 `sudo apt install ffmpeg`
 
@@ -70,4 +70,4 @@ Note that the relative times continue to use the same number-colon-etc. formatti
 
 - Add script arguments (for all user inputs + possible output folder argument?)
 - Add option to force re-encoding for frame-perfect clips
-- 
+
