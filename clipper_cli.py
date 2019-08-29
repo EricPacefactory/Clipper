@@ -13,6 +13,7 @@ Created on Fri Aug 16 17:32:29 2019
 import os
 import json
 import subprocess
+import argparse
 
 import datetime as dt
 
@@ -20,6 +21,26 @@ from local.eolib.utils.cli_tools import cli_prompt_with_defaults, ranger_file_se
 
 # ---------------------------------------------------------------------------------------------------------------------
 #%% Define functions
+
+# .....................................................................................................................
+
+def parse_args():
+    
+    # Set up argparser options
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-v", "--video", default = None, type = str, help = "Source video to clip")
+    ap.add_argument("-s", "--start", default = None, type = str, help = "Clipping start timestamp")
+    ap.add_argument("-e", "--end", default = None, type = str, help = "Clipping end timestamp")
+    ap.add_argument("-o", "--output", default = None, type = str, help = "Output video file name")
+    ap.add_argument("-p", "--outpath", default = None, type = str, help = "Output video file path")
+    
+    ap.add_argument("-x", "--exact", action = "store_true", help = "Clip video exactly at timestamps. \
+                                                                    Requires re-encoding! (slow)")
+    
+    # Convert argument inputs into a dictionary
+    ap_result = vars(ap.parse_args())
+    
+    return ap_result
 
 # .....................................................................................................................
 
@@ -121,19 +142,20 @@ def save_search_directory(video_source):
 
 # .....................................................................................................................
 
-def parse_user_times(fake_date_offset, start_str, end_str):
+def parse_user_times(fake_date_offset, full_end_dt, start_str, end_str):
     
     # Check if either time is using relative timing
-    start_is_relative = (start_str[0] == "-")
-    end_is_relative = (end_str[0] == "+")
+    start_is_relative = (start_str[0] == "-") or (start_str[0] == "n")
+    end_is_pos_relative = (end_str[0] == "+") or (end_str[0] == "p")
+    end_is_neg_relative = (end_str[0] == "-") or (end_str[0] == "n")
     
     # Error if both start and end wer egiven as relative, since the meaning is ambiguous
-    if start_is_relative and end_is_relative:
+    if start_is_relative and end_is_pos_relative:
         raise AttributeError("Start & end times cannot both be specified using relative times!")
         
     # Clean up input strings
     start_str = (start_str[1:] if start_is_relative else start_str).strip()
-    end_str = (end_str[1:] if end_is_relative else end_str).strip()
+    end_str = (end_str[1:] if (end_is_pos_relative or end_is_neg_relative) else end_str).strip()
     
     # Split by colons and count how many colons there are, since that will affect the interpretation
     start_split = start_str.split(":")
@@ -146,11 +168,16 @@ def parse_user_times(fake_date_offset, start_str, end_str):
     start_dt = parse_func[start_num_colons](fake_date_offset, start_split)
     end_dt = parse_func[end_num_colons](fake_date_offset, end_split)
     
-    # Apply relative timing (i.e. start -> subtract off end time or end -> add to start time) if needed
+    # Apply relative timing if needed
+    #   (-) start -> subtract off end time 
+    #   (+) end -> add to start time
+    #   (-) end -> subtract off full video time
     if start_is_relative:
         start_dt = end_dt - (start_dt - fake_date_offset)
-    if end_is_relative:
+    if end_is_pos_relative:
         end_dt = start_dt + (end_dt - fake_date_offset)
+    if end_is_neg_relative:
+        end_dt = full_end_dt - end_dt + fake_date_offset
     
     return start_dt, end_dt
 
@@ -244,7 +271,7 @@ def get_video_duration_sec(video_source):
 
 # .....................................................................................................................
 
-def build_ffmpeg_command(input_source, start_dt, end_dt, output_path):
+def build_ffmpeg_command(input_source, start_dt, end_dt, output_path, use_exact_clip = False):
     
     # Calculate video duration, since ffmpeg -t parameters seems better than explicit end time arg
     clip_duration_sec = (end_clip_dt - start_clip_dt).total_seconds()
@@ -257,10 +284,16 @@ def build_ffmpeg_command(input_source, start_dt, end_dt, output_path):
     run_command_list = ["ffmpeg", "-y",
                         "-ss", ss_arg, 
                         "-t", t_arg, 
-                        "-i", video_source, 
+                        "-i", video_source,
                         "-c", "copy", 
                         "-avoid_negative_ts", "1",
                         save_path]
+    
+    # Remove copy commands (-c copy) if we're clipping at exact timestamps
+    if use_exact_clip:
+        copy_flag_idx = 8
+        run_command_list.pop(copy_flag_idx)
+        run_command_list.pop(copy_flag_idx)
     
     # Also make a human reable version (by removing full pathing), in case the user needs to debug
     human_friendly_list = ["ffmpeg", 
@@ -270,6 +303,13 @@ def build_ffmpeg_command(input_source, start_dt, end_dt, output_path):
                            "-c", "copy", 
                            "-avoid_negative_ts", "1",
                            "<output_path>"]
+    
+    # Remove copy commands (-c copy) if we're clipping at exact timestamps
+    if use_exact_clip:
+        copy_flag_idx = 8
+        human_friendly_list.pop(copy_flag_idx)
+        human_friendly_list.pop(copy_flag_idx)
+    
     human_readable_str = " ".join(human_friendly_list)
     
     return run_command_list, human_readable_str
@@ -308,18 +348,32 @@ def process_feedback(subproc_return, output_save_path, human_readable_command_st
 # Try to make sure ffmpeg and ranger are installed
 check_req_installs()
 
+# Get script arguments
+input_args = parse_args()
+arg_video_source = input_args.get("video")
+arg_start_time = input_args.get("start")
+arg_end_time = input_args.get("end")
+arg_output_name = input_args.get("output")
+arg_output_path = input_args.get("outpath")
+arg_exact = input_args.get("exact")
+
 # Get file search directory
 video_search_directory = load_default_search_directory()
 
 # ---------------------------------------------------------------------------------------------------------------------
 #%% Select video to clip
 
-# Some feedback before suddenly jumping into ranger
-print("", "Please user ranger cli to select a video file", sep="\n")
-input("  Press Enter key to continue...")
-
-# Get the user to select a video
-video_source = ranger_file_select(start_dir = video_search_directory)
+# Get the user to select a video or use the script argument
+if arg_video_source is None:
+    
+    # Some feedback before suddenly jumping into ranger
+    print("", "Please user ranger cli to select a video file", sep="\n")
+    input("  Press Enter key to continue...")
+        
+    video_source = ranger_file_select(start_dir = video_search_directory)
+else:
+    video_source = arg_video_source
+    print("", "Using input argument for video source:", "@ {}".format(video_source), sep="\n")
 
 # Save the file directory, for easier re-use
 save_search_directory(video_source)
@@ -350,16 +404,42 @@ print("",
       "  Total duration: {}".format(video_end_str),
       sep="\n")
 
-# Get the user to specify the start/end timing of the clipped video
-user_start_time = cli_prompt_with_defaults("Enter starting time: ", default_value = "00:00:00", return_type = str)
-user_end_time = cli_prompt_with_defaults("Enter ending time: ", default_value = video_end_str, return_type = str)
+# Get the user to enter a start time or use the script argument
+if arg_start_time is None:
+    user_start_time = cli_prompt_with_defaults("Enter starting time: ", default_value = "00:00:00", return_type = str)
+else:
+    user_start_time = arg_start_time
+    print("", "Using input argument for start time:", "  {}".format(user_start_time), sep="\n")
+
+# Get the user to enter an end time or use the script argument
+if arg_end_time is None:
+    user_end_time = cli_prompt_with_defaults("Enter ending time: ", default_value = video_end_str, return_type = str)
+else:
+    user_end_time = arg_end_time
+    print("", "Using input argument for end time:", "  {}".format(user_end_time), sep="\n")
 
 # Convert user entries to a common datetime format for easier manipulation
-start_clip_dt, end_clip_dt = parse_user_times(fake_date_offset, user_start_time, user_end_time)
+start_clip_dt, end_clip_dt = parse_user_times(fake_date_offset, video_end_dt, user_start_time, user_end_time)
+
+# ---------------------------------------------------------------------------------------------------------------------
+#%% Figure out saving
 
 # Figure out a reasonable save name and then ask the user if they want to go with something different
 default_save_name, save_ext, save_folder_path = generate_default_save_name(video_source, start_clip_dt, end_clip_dt)
-user_outname = cli_prompt_with_defaults("Enter recording name: ", default_value = default_save_name, return_type = str)
+
+# Ask the user for a file name or user the script argument
+if arg_output_name is None:
+    user_outname = cli_prompt_with_defaults("Enter recording name: ", 
+                                            default_value = default_save_name, 
+                                            return_type = str)
+else:
+    user_outname = arg_output_name
+    print("", "Using input argument for output file name:", "  {}".format(user_outname), sep="\n")
+
+# Overwrite the default output path if a script argument is available
+if arg_output_path is not None:
+    save_folder_path = arg_output_path
+    print("", "Using input argument for output path:", "  {}".format(save_folder_path), sep="\n")
 
 # Add back extension (and remove any user-added ext)
 save_name = "{}{}".format(user_outname, save_ext)
@@ -379,8 +459,12 @@ print("",
       "",
       sep = "\n")
 
+if arg_exact:
+    print("Using exact clipping. Output file creation will take some time...", "", sep="\n")
+
 # Run ffmpeg command to clip video (runs very fast!)
-run_command_list, human_readable_str = build_ffmpeg_command(video_source, start_clip_dt, end_clip_dt, save_path)
+run_command_list, human_readable_str = build_ffmpeg_command(video_source, start_clip_dt, end_clip_dt, save_path,
+                                                            use_exact_clip = arg_exact)
 proc_out = captured_subprocess(run_command_list)
 
 # Final feedback
