@@ -94,5 +94,4 @@ A minus sign on the end timestamp is interpretted as a duration before the end o
 
 ## TODOs
 
-- Add script arguments (for all user inputs + possible output folder argument?)
-- Add option to force re-encoding for frame-perfect clips
+- Option to change video encoding? (e.g. convert to h264)
