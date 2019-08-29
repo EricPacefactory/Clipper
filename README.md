@@ -41,10 +41,12 @@ This script accepts multiple input arguments:
     Input video source (including pathing)
 
 -s / --start : <String>
-    Starting timestamp. To use a negative value, type 'n' in place of '-'
+    Starting timestamp. 
+    (To enter a negative relative value, type 'n' in place of '-')
 
 -e / --end : <String>
-    Ending timestamp. To use a negative value, type 'n' in place of '-'
+    Ending timestamp. 
+    (To enter a negative relative value, type 'n' in place of '-')
     
 -o / --outname : <String>
     Output file name (no extension)
@@ -53,10 +55,8 @@ This script accepts multiple input arguments:
     Folder path for the output file (defaults to the same as the source)
     
 -x / --exact : (boolean flag)
-    If present, exact (re-encoded) clipping is performe
+    If present, exact (re-encoded) clipping is performed
 ```
-
-
 
 ## Timestamp Input Formats
 
