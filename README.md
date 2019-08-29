@@ -28,9 +28,35 @@ Following the file selection, the user will be prompted with a start and end tim
 
 **Note2:** Each of the prompts have default settings (which are displayed above the prompt). If nothing is entered, the default will be used.
 
-**Note3:** The output file will be saved in the same location as the input file. This cannot be changed (as of yet).
+**Note3:** The output file will be saved in the same location as the input file. This can be changed using script arguments!
 
-**Note4:** Clipping is lossless, meaning that the video is not re-encoded. However, this also means that the clipped video may not have the exact timestamps specified by the user, as the clipping must occur on keyframes of the original file.
+**Note4:** By default, clipping is lossless, meaning that the video is not re-encoded. However, this also means that the clipped video may not have the exact timestamps specified by the user, as the clipping must occur on keyframes of the original file. If exact clipping is needed, use the appropriate script argument.
+
+# Script Arguments
+
+This script accepts multiple input arguments:
+
+```
+-v / --video : <String>
+    Input video source (including pathing)
+
+-s / --start : <String>
+    Starting timestamp. To use a negative value, type 'n' in place of '-'
+
+-e / --end : <String>
+    Ending timestamp. To use a negative value, type 'n' in place of '-'
+    
+-o / --outname : <String>
+    Output file name (no extension)
+    
+-p / --outpath : <String>
+    Folder path for the output file (defaults to the same as the source)
+    
+-x / --exact : (boolean flag)
+    If present, exact (re-encoded) clipping is performe
+```
+
+
 
 ## Timestamp Input Formats
 
@@ -46,7 +72,7 @@ Using two digits for each entry is not strictly required. Conventional rollovers
 
 #### Relative timestamps
 
-In addition to the number-colon notation, the start timestamp can also accept a minus sign (-), while the end timestamp accepts a plus sign (+). Though only one of these modifiers may be used at a time!
+In addition to the number-colon notation, the start timestamp can also accept a minus sign (-), while the end timestamp accepts a plus sign (+) as well as a negative sign. If the end time is relative-positive, the start time cannot also be relative!
 
 A minus sign on the start timestamp is interpretted as a duration *before* the end timestamp. For example:
 
@@ -64,10 +90,9 @@ start_timestamp = 7:45
 -> end is interpretted as 45 seconds after the start timestamp (e.g. 08:30)
 ```
 
-Note that the relative times continue to use the same number-colon-etc. formatting as regular timestamps.
+A minus sign on the end timestamp is interpretted as a duration before the end of the video. Note that the relative times continue to use the same number-colon-etc. formatting as regular timestamps.
 
 ## TODOs
 
 - Add script arguments (for all user inputs + possible output folder argument?)
 - Add option to force re-encoding for frame-perfect clips
-
