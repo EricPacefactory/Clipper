@@ -31,7 +31,7 @@ def parse_args():
     ap.add_argument("-v", "--video", default = None, type = str, help = "Source video to clip")
     ap.add_argument("-s", "--start", default = None, type = str, help = "Clipping start timestamp")
     ap.add_argument("-e", "--end", default = None, type = str, help = "Clipping end timestamp")
-    ap.add_argument("-o", "--output", default = None, type = str, help = "Output video file name")
+    ap.add_argument("-o", "--outname", default = None, type = str, help = "Output video file name")
     ap.add_argument("-p", "--outpath", default = None, type = str, help = "Output video file path")
     
     ap.add_argument("-x", "--exact", action = "store_true", help = "Clip video exactly at timestamps. \
@@ -172,12 +172,12 @@ def parse_user_times(fake_date_offset, full_end_dt, start_str, end_str):
     #   (-) start -> subtract off end time 
     #   (+) end -> add to start time
     #   (-) end -> subtract off full video time
+    if end_is_neg_relative:
+        end_dt = full_end_dt - end_dt + fake_date_offset
     if start_is_relative:
         start_dt = end_dt - (start_dt - fake_date_offset)
     if end_is_pos_relative:
         end_dt = start_dt + (end_dt - fake_date_offset)
-    if end_is_neg_relative:
-        end_dt = full_end_dt - end_dt + fake_date_offset
     
     return start_dt, end_dt
 
@@ -353,7 +353,7 @@ input_args = parse_args()
 arg_video_source = input_args.get("video")
 arg_start_time = input_args.get("start")
 arg_end_time = input_args.get("end")
-arg_output_name = input_args.get("output")
+arg_output_name = input_args.get("outname")
 arg_output_path = input_args.get("outpath")
 arg_exact = input_args.get("exact")
 
