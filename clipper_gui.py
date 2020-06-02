@@ -17,6 +17,8 @@ import argparse
 
 import datetime as dt
 
+from platform import uname
+
 from local.eolib.utils.gui_tools import gui_file_select
 from local.eolib.utils.cli_tools import cli_prompt_with_defaults
 
@@ -53,8 +55,13 @@ def captured_subprocess(run_command_list):
 
 def check_req_installs():
     
-    ffmpeg_check = captured_subprocess(["which", "ffmpeg"])
-    ffprobe_check = captured_subprocess(["which", "ffprobe"])
+    # Make sure we use the right 'check for program' command
+    system_type = uname().system
+    system_is_windows = ("windows" in system_type.lower())
+    check_cmd = "where" if system_is_windows else "which"
+    
+    ffmpeg_check = captured_subprocess([check_cmd, "ffmpeg"])
+    ffprobe_check = captured_subprocess([check_cmd, "ffprobe"])
     
     if ffmpeg_check.returncode != 0:
         print("",
