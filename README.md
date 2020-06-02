@@ -48,7 +48,7 @@ This script accepts multiple input arguments:
     Ending timestamp. 
     (To enter a negative relative value, type 'n' in place of '-')
     
--o / --outname : <String>
+-n / --outname : <String>
     Output file name (no extension)
     
 -p / --outpath : <String>

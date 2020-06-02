@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Aug 16 17:32:29 2019
+Created on Tue Jun  2 09:26:38 2020
 
 @author: eo
 """
@@ -17,8 +17,8 @@ import argparse
 
 import datetime as dt
 
+from local.eolib.utils.gui_tools import gui_file_select
 from local.eolib.utils.cli_tools import cli_prompt_with_defaults
-from local.eolib.utils.ranger_tools import ranger_file_select
 
 # ---------------------------------------------------------------------------------------------------------------------
 #%% Define functions
@@ -55,7 +55,6 @@ def check_req_installs():
     
     ffmpeg_check = captured_subprocess(["which", "ffmpeg"])
     ffprobe_check = captured_subprocess(["which", "ffprobe"])
-    ranger_check = captured_subprocess(["which", "ranger"])
     
     if ffmpeg_check.returncode != 0:
         print("",
@@ -72,15 +71,6 @@ def check_req_installs():
               "On Ubuntu, this program comes with ffmpeg, so install with:",
               "",
               "  sudo apt install ffmpeg",
-              "",
-              sep = "\n")
-    
-    if ranger_check.returncode != 0:
-        print("",
-              "WARNING: Couldn't find ranger! This script may fail...",
-              "On Ubuntu, install with:",
-              "",
-              "  sudo apt install ranger",
               "",
               sep = "\n")
     
@@ -358,7 +348,7 @@ def process_feedback(subproc_return, output_save_path, human_readable_command_st
 # ---------------------------------------------------------------------------------------------------------------------
 #%% Setup
         
-# Try to make sure ffmpeg and ranger are installed
+# Try to make sure ffmpeg and ffprobe are installed
 check_req_installs()
 
 # Get script arguments
@@ -378,12 +368,8 @@ video_search_directory = load_default_search_directory()
 
 # Get the user to select a video or use the script argument
 if arg_video_source is None:
+    video_source = gui_file_select(start_dir = video_search_directory, window_title = "Select video file")
     
-    # Some feedback before suddenly jumping into ranger
-    print("", "Please use ranger cli to select a video file", sep="\n")
-    input("  Press Enter key to continue...")
-        
-    video_source = ranger_file_select(start_dir = video_search_directory)
 else:
     video_source = arg_video_source
     print("", "Using input argument for video source:", "@ {}".format(video_source), sep="\n")
@@ -426,13 +412,24 @@ else:
 
 # Get the user to enter an end time or use the script argument
 if arg_end_time is None:
-    user_end_time = cli_prompt_with_defaults("Enter ending time: ", default_value = video_end_str, return_type = str)
+    user_end_time = cli_prompt_with_defaults("  Enter ending time: ", default_value = video_end_str, return_type = str)
 else:
     user_end_time = arg_end_time
     print("", "Using input argument for end time:", "  {}".format(user_end_time), sep="\n")
 
 # Convert user entries to a common datetime format for easier manipulation
 start_clip_dt, end_clip_dt = parse_user_times(fake_date_offset, video_end_dt, user_start_time, user_end_time)
+
+# Provide feedback about actual selected time range (in case relative times were used)
+user_start_time_str = start_clip_dt.strftime("%H:%M:%S")
+user_end_time_str = end_clip_dt.strftime("%H:%M:%S")
+print("",
+      "--- Selected time range ---",
+      "",
+      "{} (start)".format(user_start_time_str),
+      "{} (end)".format(user_end_time_str),
+      sep = "\n")
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 #%% Figure out saving
